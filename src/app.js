@@ -3,7 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
-import userRoutes from './routes/userRoutes.js';
+import userRoutes from './routes/v1/userRoutes.js';
 
 // Load environment variables
 dotenv.config();
@@ -17,7 +17,7 @@ app.use(morgan('dev'));
 app.use(express.json()); // Parses incoming JSON requests
 
 // Below all middleware
-app.use('/api/users', userRoutes);
+app.use('/api/v1/users', userRoutes);
 // Sample route
 app.get('/', (req, res) => {
   res.send({ message: 'Task Management System API is running' });
