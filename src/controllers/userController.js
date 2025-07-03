@@ -1,76 +1,98 @@
-import * as User from '../models/userModel.js';
-import redisClient from '../config/redis.js'; 
+//import * as User from '../models/userModel.js';
+import { UserModel } from '../models/userModel.js';
+import redisClient from '../config/redis.js';
 
-export const create = async (req, res) => {
-    console.log('create');
-  try {
-    const user = await User.createUser(req.body);
-    res.status(201).json(user);
-  } catch (err) {
-    res.status(500).json({ error: 'Failed to create user' });
-  }
-};
+class UserController {
+  async create(req, res) {
+    console.log('[POST] /api/users - Creating user');
+    try {
+      const user = await UserModel.create(req.body);
 
-export const getAll = async (req, res) => {
-  try {
-    console.log(' [GET] /api/users - Checking Redis cache');
+      await redisClient.del('users:all');
 
-    // 1. Ensure Redis is connected
-    if (!redisClient.isOpen) {
-      console.log('Connecting to Redis...');
-      await redisClient.connect();
+      res.status(201).json(user);
+    } catch (err) {
+      console.error('❌ Error creating user:', err);
+      res.status(500).json({ error: 'Failed to create user' });
     }
+  }
 
-    // 2. Try to get cached users
-    const cachedUsers = await redisClient.get('users:all');
-    if (cachedUsers) {
-      console.log('✅ Returning users from cache');
-      return res.json(JSON.parse(cachedUsers));
+  async getAll(req, res) {
+    console.log('[GET] /api/users - Checking Redis cache');
+    try {
+      if (!redisClient.isOpen) {
+        console.log('Connecting to Redis...');
+        await redisClient.connect();
+      }
+
+      const cachedUsers = await redisClient.get('users:all');
+      if (cachedUsers) {
+        console.log('✅ Returning users from Redis cache');
+        return res.json(JSON.parse(cachedUsers));
+      }
+
+      console.log('🗄️ Fetching users from DB');
+      const users = await UserModel.getAll();
+
+      await redisClient.set('users:all', JSON.stringify(users), { EX: 60 });
+      console.log('✅ Users cached for 60 seconds');
+
+      res.json(users);
+    } catch (err) {
+      console.error('❌ Redis getAll error:', err);
+      res.status(500).json({ error: 'Internal server error' });
     }
-
-    // 3. Fetch users from DB
-    console.log('🗄️ Fetching users from DB');
-    const users = await User.getAllUsers();
-
-    // 4. Cache users with TTL (60 seconds)
-    await redisClient.set('users:all', JSON.stringify(users), {
-      EX: 60,
-    });
-
-    console.log('✅ Users cached successfully');
-    res.json(users);
-  } catch (err) {
-    console.error('❌ Redis getAll error:', err);
-    res.status(500).json({ error: 'Internal server error' });
   }
-};
 
-export const getById = async (req, res) => {
-  try {
-    const user = await User.getUserById(req.params.id);
-    if (!user) return res.status(404).json({ error: 'User not found' });
-    res.json(user);
-  } catch (err) {
-    res.status(500).json({ error: 'Failed to fetch user' });
+  async getById(req, res) {
+    console.log(`[GET] /api/users/${req.params.id}`);
+    try {
+      const user = await UserModel.getById(req.params.id);
+      if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+      res.json(user);
+    } catch (err) {
+      console.error('❌ Error fetching user by ID:', err);
+      res.status(500).json({ error: 'Failed to fetch user' });
+    }
   }
-};
 
-export const update = async (req, res) => {
-  try {
-    const user = await User.updateUser(req.params.id, req.body);
-    if (!user) return res.status(404).json({ error: 'User not found' });
-    res.json(user);
-  } catch (err) {
-    res.status(500).json({ error: 'Failed to update user' });
-  }
-};
+  async update(req, res) {
+    console.log(`[PUT] /api/users/${req.params.id}`);
+    try {
+      const user = await UserModel.update(req.params.id, req.body);
+      if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+      }
 
-export const remove = async (req, res) => {
-  try {
-    const user = await User.deleteUser(req.params.id);
-    if (!user) return res.status(404).json({ error: 'User not found' });
-    res.json({ message: 'User deleted' });
-  } catch (err) {
-    res.status(500).json({ error: 'Failed to delete user' });
+      // Optional: Invalidate cache
+      await redisClient.del('users:all');
+
+      res.json(user);
+    } catch (err) {
+      console.error('❌ Error updating user:', err);
+      res.status(500).json({ error: 'Failed to update user' });
+    }
   }
-};
+
+  async remove(req, res) {
+    console.log(`[DELETE] /api/users/${req.params.id}`);
+    try {
+      const user = await UserModel.delete(req.params.id);
+      if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+
+      // Optional: Invalidate cache
+      await redisClient.del('users:all');
+
+      res.json({ message: 'User deleted' });
+    } catch (err) {
+      console.error('❌ Error deleting user:', err);
+      res.status(500).json({ error: 'Failed to delete user' });
+    }
+  }
+}
+
+export default new UserController();

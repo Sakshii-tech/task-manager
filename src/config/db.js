@@ -24,3 +24,4 @@ pool.connect()
     process.exit(1); // Exit the app if DB fails
   });
 
+export default pool;
