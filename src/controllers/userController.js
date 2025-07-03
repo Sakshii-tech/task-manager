@@ -6,19 +6,6 @@ class UserController {
   async create(req, res) {
     console.log('[POST] /api/users - Creating user');
     try {
-      const user = await User.createUser(req.body);
-
-      await redisClient.del('users:all');
-
-      res.status(201).json(user);
-    } catch (err) {
-      console.error('❌ Error creating user:', err);
-      res.status(500).json({ error: 'Failed to create user' });
-    }
-class UserController {
-  async create(req, res) {
-    console.log('[POST] /api/users - Creating user');
-    try {
       const user = await UserModel.create(req.body);
 
       await redisClient.del('users:all');

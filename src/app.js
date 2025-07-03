@@ -4,16 +4,7 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
 import userRoutes from './routes/v1/userRoutes.js';
-
-// Load environment variables
-import express from "express";
-import cors from "cors";
-import helmet from "helmet";
-import morgan from "morgan";
-import dotenv from "dotenv";
 import swaggerUI from "swagger-ui-express";
-
-import userRoutes from "./routes/v1/userRoutes.js";
 import db from "./config/db.js";
 import redisClient from "./config/redis.js";
 import swaggerDefinition from "./api-doc/v1/main_doc.js";
