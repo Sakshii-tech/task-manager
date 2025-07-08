@@ -4,12 +4,6 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 export class UserModel {
-  static async create({ name, email }) {
-    console.log('Creating user with Prisma:', { name, email });
-    return await prisma.user.create({
-      data: { name, email },
-    });
-  }
 
   static async getAll() {
     return await prisma.user.findMany({

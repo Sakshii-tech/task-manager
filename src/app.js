@@ -6,6 +6,9 @@ import dotenv from 'dotenv';
 import userRoutes from './routes/v1/userRoutes.js';
 import swaggerUI from 'swagger-ui-express';
 import swaggerDefinition from './api-doc/v1/main_doc.js';
+import authRoutes from './routes/v1/authRoutes.js';
+import projectRoutes from './routes/v1/projectRoutes.js';
+import taskRoutes from './routes/v1/taskRoutes.js';
 
 dotenv.config();
 
@@ -19,6 +22,9 @@ app.use(express.json());
 
 // ✅ Routes
 app.use('/api/v1/users', userRoutes);
+app.use('/api/v1/auth', authRoutes);
+app.use("/api/v1/projects", projectRoutes);
+app.use('/api/v1/tasks', taskRoutes);
 
 app.get('/', (req, res) => {
   res.send({ message: 'Task Management System API is running' });

@@ -14,9 +14,9 @@ model User {
   name      String
   email     String   @unique
   createdAt DateTime @default(now()) @map("created_at")
-
+  password  String
   tasks     Task[]
-
+  projects  Project[] @relation("UserProjects") 
 @@map("users")
 }
 
@@ -29,6 +29,10 @@ model Project {
   createdAt   DateTime @default(now()) @map("created_at")
 
   tasks       Task[]
+
+  creatorId   Int      @map("creator_id")  
+  creator     User     @relation("UserProjects", fields: [creatorId], references: [id])
+
 
   @@map("projects")
 }
