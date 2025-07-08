@@ -1,18 +1,25 @@
 {
   "name": "task-manager",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Task Management System Backend",
+  "main": "src/app.js",
+  "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node src/app.js",
-    "dev": "nodemon src/app.js"
+    "dev": "nodemon src/app.js",
+    "prisma:generate": "prisma generate",
+    "prisma:studio": "prisma studio",
+    "prisma:migrate:dev": "prisma migrate dev",
+    "prisma:migrate:deploy": "prisma migrate deploy",
+    "prisma:migrate:reset": "prisma migrate reset",
+    "prisma:db:push": "prisma db push",
+    "prisma:format": "prisma format"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "module",
   "dependencies": {
+    "@prisma/client": "^6.11.1",
     "cors": "^2.8.5",
     "dotenv": "^16.6.0",
     "express": "^5.1.0",
@@ -24,6 +31,7 @@
     "swagger-ui-express": "^5.0.1"
   },
   "devDependencies": {
-   "nodemon": "^3.1.10"
+    "nodemon": "^3.1.10",
+    "prisma": "^6.11.1"
   }
 }

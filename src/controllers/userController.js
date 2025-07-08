@@ -1,14 +1,15 @@
-//import * as User from '../models/userModel.js';
 import { UserModel } from '../models/userModel.js';
 import redisClient from '../config/redis.js';
 
 class UserController {
   async create(req, res) {
-    console.log('[POST] /api/users - Creating user');
+    console.log('[POST] /api/v1/users - Creating user');
     try {
       const user = await UserModel.create(req.body);
 
-      await redisClient.del('users:all');
+      if (redisClient.isOpen) {
+        await redisClient.del('users:all');
+      }
 
       res.status(201).json(user);
     } catch (err) {
@@ -18,34 +19,35 @@ class UserController {
   }
 
   async getAll(req, res) {
-    console.log('[GET] /api/users - Checking Redis cache');
+    console.log('[GET] /api/v1/users');
     try {
-      if (!redisClient.isOpen) {
-        console.log('Connecting to Redis...');
-        await redisClient.connect();
-      }
+      let users;
 
-      const cachedUsers = await redisClient.get('users:all');
-      if (cachedUsers) {
-        console.log('✅ Returning users from Redis cache');
-        return res.json(JSON.parse(cachedUsers));
+      if (redisClient.isOpen) {
+        const cachedUsers = await redisClient.get('users:all');
+        if (cachedUsers) {
+          console.log('✅ Returning users from Redis cache');
+          return res.json(JSON.parse(cachedUsers));
+        }
       }
 
       console.log('🗄️ Fetching users from DB');
-      const users = await UserModel.getAll();
+      users = await UserModel.getAll();
 
-      await redisClient.set('users:all', JSON.stringify(users), { EX: 60 });
-      console.log('✅ Users cached for 60 seconds');
+      if (redisClient.isOpen) {
+        await redisClient.set('users:all', JSON.stringify(users), { EX: 60 });
+        console.log('✅ Users cached for 60 seconds');
+      }
 
       res.json(users);
     } catch (err) {
-      console.error('❌ Redis getAll error:', err);
+      console.error('❌ Error fetching all users:', err);
       res.status(500).json({ error: 'Internal server error' });
     }
   }
 
   async getById(req, res) {
-    console.log(`[GET] /api/users/${req.params.id}`);
+    console.log(`[GET] /api/v1/users/${req.params.id}`);
     try {
       const user = await UserModel.getById(req.params.id);
       if (!user) {
@@ -59,15 +61,16 @@ class UserController {
   }
 
   async update(req, res) {
-    console.log(`[PUT] /api/users/${req.params.id}`);
+    console.log(`[PUT] /api/v1/users/${req.params.id}`);
     try {
       const user = await UserModel.update(req.params.id, req.body);
       if (!user) {
         return res.status(404).json({ error: 'User not found' });
       }
 
-      // Optional: Invalidate cache
-      await redisClient.del('users:all');
+      if (redisClient.isOpen) {
+        await redisClient.del('users:all');
+      }
 
       res.json(user);
     } catch (err) {
@@ -77,15 +80,16 @@ class UserController {
   }
 
   async remove(req, res) {
-    console.log(`[DELETE] /api/users/${req.params.id}`);
+    console.log(`[DELETE] /api/v1/users/${req.params.id}`);
     try {
       const user = await UserModel.delete(req.params.id);
       if (!user) {
         return res.status(404).json({ error: 'User not found' });
       }
 
-      // Optional: Invalidate cache
-      await redisClient.del('users:all');
+      if (redisClient.isOpen) {
+        await redisClient.del('users:all');
+      }
 
       res.json({ message: 'User deleted' });
     } catch (err) {
