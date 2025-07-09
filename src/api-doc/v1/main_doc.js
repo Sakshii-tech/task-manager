@@ -119,6 +119,7 @@ export default {
       "get": {
         "summary": "Get all users",
         "tags": ["Users"],
+         "security": [{ "bearerAuth": [] }],
         "responses": {
           "200": {
             "description": "List of users",
@@ -133,28 +134,6 @@ export default {
           }
         }
       },
-      "post": {
-        "summary": "Create new user",
-        "tags": ["Users"],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": ["name", "email"],
-                "properties": {
-                  "name": { "type": "string" },
-                  "email": { "type": "string" }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": { "description": "User created" }
-        }
-      }
     },
     "/users/{id}": {
       "get": {
@@ -163,6 +142,7 @@ export default {
         "parameters": [
           { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
         ],
+         "security": [{ "bearerAuth": [] }],
         "responses": {
           "200": { "description": "User found", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/User" } } } },
           "404": { "description": "User not found" }
@@ -171,6 +151,7 @@ export default {
       "put": {
         "summary": "Update user by ID",
         "tags": ["Users"],
+        "security": [{ "bearerAuth": [] }],
         "parameters": [
           { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
         ],
@@ -196,6 +177,7 @@ export default {
       "delete": {
         "summary": "Delete user by ID",
         "tags": ["Users"],
+         "security": [{ "bearerAuth": [] }],
         "parameters": [
           { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
         ],
@@ -247,7 +229,7 @@ export default {
         }
       }
     },
-    "/projects/{id}/tasks": {
+    "/tasks/projects/{id}/tasks": {
       "post": {
         "summary": "Create task in project",
         "tags": ["Tasks"],
