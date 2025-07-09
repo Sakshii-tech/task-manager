@@ -31,7 +31,7 @@ model Project {
   tasks       Task[]
 
   creatorId   Int      @map("creator_id")  
-  creator     User     @relation("UserProjects", fields: [creatorId], references: [id])
+  creator     User     @relation("UserProjects", fields: [creatorId], references: [id], onDelete: Cascade)
 
 
   @@map("projects")
