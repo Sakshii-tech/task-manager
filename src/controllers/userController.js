@@ -2,22 +2,6 @@ import { UserModel } from '../models/userModel.js';
 import redisClient from '../config/redis.js';
 
 class UserController {
-  async create(req, res) {
-    console.log('[POST] /api/v1/users - Creating user');
-    try {
-      const user = await UserModel.create(req.body);
-
-      if (redisClient.isOpen) {
-        await redisClient.del('users:all');
-      }
-
-      res.status(201).json(user);
-    } catch (err) {
-      console.error('❌ Error creating user:', err);
-      res.status(500).json({ error: 'Failed to create user' });
-    }
-  }
-
   async getAll(req, res) {
     console.log('[GET] /api/v1/users');
     try {
@@ -31,17 +15,17 @@ class UserController {
         }
       }
 
-      console.log('🗄️ Fetching users from DB');
+      console.log('Fetching users from DB');
       users = await UserModel.getAll();
 
       if (redisClient.isOpen) {
         await redisClient.set('users:all', JSON.stringify(users), { EX: 60 });
-        console.log('✅ Users cached for 60 seconds');
+        console.log('Users cached for 60 seconds');
       }
 
       res.json(users);
     } catch (err) {
-      console.error('❌ Error fetching all users:', err);
+      console.error('Error fetching all users:', err);
       res.status(500).json({ error: 'Internal server error' });
     }
   }
@@ -55,7 +39,7 @@ class UserController {
       }
       res.json(user);
     } catch (err) {
-      console.error('❌ Error fetching user by ID:', err);
+      console.error('Error fetching user by ID:', err);
       res.status(500).json({ error: 'Failed to fetch user' });
     }
   }
@@ -74,7 +58,7 @@ class UserController {
 
       res.json(user);
     } catch (err) {
-      console.error('❌ Error updating user:', err);
+      console.error('Error updating user:', err);
       res.status(500).json({ error: 'Failed to update user' });
     }
   }
@@ -93,7 +77,7 @@ class UserController {
 
       res.json({ message: 'User deleted' });
     } catch (err) {
-      console.error('❌ Error deleting user:', err);
+      console.error('Error deleting user:', err);
       res.status(500).json({ error: 'Failed to delete user' });
     }
   }
