@@ -9,7 +9,7 @@ import swaggerDefinition from './api-doc/v1/main_doc.js';
 import authRoutes from './routes/v1/authRoutes.js';
 import projectRoutes from './routes/v1/projectRoutes.js';
 import taskRoutes from './routes/v1/taskRoutes.js';
-
+import errorHandler from './middleware/errorHandler.js';
 dotenv.config();
 
 const app = express();
@@ -32,16 +32,7 @@ app.get('/', (req, res) => {
 
 app.use('/v1/api-doc', swaggerUI.serve, swaggerUI.setup(swaggerDefinition));
 
-// ✅ 404 handler
-app.use((req, res) => {
-  res.status(404).json({ error: 'Not Found' });
-});
-
-// ✅ Error handler
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ error: 'Internal Server Error' });
-});
+app.use(errorHandler);
 
 // ✅ Start server
 const PORT = process.env.PORT || 3000;

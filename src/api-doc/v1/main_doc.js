@@ -115,6 +115,61 @@ export default {
         }
       }
     },
+
+    "/auth/refresh": {
+  "post": {
+    "summary": "Refresh JWT tokens",
+    "tags": ["Auth"],
+    "requestBody": {
+      "required": true,
+      "content": {
+        "application/json": {
+          "schema": {
+            "type": "object",
+            "properties": {
+              "refreshToken": {
+                "type": "string",
+                "example": "eyJhbGciOiJIUzI1NiIsInR5..."
+              }
+            },
+            "required": ["refreshToken"]
+          }
+        }
+      }
+    },
+    "responses": {
+      "200": {
+        "description": "New access and refresh tokens generated",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "accessToken": {
+                  "type": "string",
+                  "example": "eyJhbGciOiJIUzI1NiIsInR5..."
+                },
+                "refreshToken": {
+                  "type": "string",
+                  "example": "eyJhbGciOiJIUzI1NiIsInR5..."
+                }
+              }
+            }
+          }
+        }
+      },
+      "401": {
+        "description": "No refresh token provided or invalid"
+      },
+      "403": {
+        "description": "Invalid or expired refresh token"
+      },
+      "500": {
+        "description": "Server error"
+      }
+    }
+  }
+},
     "/users": {
       "get": {
         "summary": "Get all users",
