@@ -2,35 +2,53 @@
 
 import prisma from '../config/prismaClient.js';
 import redisClient from '../config/redis.js';
+import { encryptId } from '../utils/idUtils.js';
 
 class ProjectService {
-    async createProject(userId, data) {
-        const project = await prisma.project.create({
-            data: {
-                name: data.name,
-                description: data.description,
-                creatorId: userId,
-            },
-        });
-        return project;
+  async createProject(userId, data) {
+    const project = await prisma.project.create({
+      data: {
+        name: data.name,
+        description: data.description,
+        creatorId: userId,
+      },
+    });
+
+    //  Encrypt ID before returning
+    return {
+      id: encryptId(project.id),
+      name: project.name,
+      description: project.description,
+    };
+  }
+
+  async getAllProjects(userId) {
+    const cacheKey = `projects:user:${userId}`;
+
+    const cached = await redisClient.get(cacheKey);
+    if (cached) {
+      return JSON.parse(cached);
     }
 
-    async getAllProjects(userId) {
-        const cacheKey = `projects:user:${userId}`;
+    const projects = await prisma.project.findMany({
+      orderBy :{
+        id : 'desc'
+      }, 
+      where: { creatorId: userId },
+    });
 
-        const cached = await redisClient.get(cacheKey);
-        if (cached) {
-            return JSON.parse(cached);
-        }
+    // Encrypt all project IDs before caching/returning
+    const projectsWithEncryptedIds = projects.map(project => ({
+      id: encryptId(project.id),
+      name: project.name,
+      description: project.description,
+      creatorId: encryptId(project.creatorId), // Optional
+    }));
 
-        const projects = await prisma.project.findMany({
-            where: { creatorId: userId },
-        });
+    await redisClient.set(cacheKey, JSON.stringify(projectsWithEncryptedIds), { EX: 60 });
 
-        await redisClient.set(cacheKey, JSON.stringify(projects), { EX: 60 });
-
-        return projects;
-    }
+    return projectsWithEncryptedIds;
+  }
 }
 
 export default new ProjectService();

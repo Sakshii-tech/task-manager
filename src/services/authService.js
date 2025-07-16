@@ -1,8 +1,7 @@
-// src/services/authService.js
-
 import prisma from '../config/prismaClient.js';
 import { hashPassword, comparePasswords } from '../utils/hashUtils.js';
 import { generateAccessToken, generateRefreshToken, verifyToken } from '../utils/jwtUtils.js';
+import { encryptId } from '../utils/idUtils.js';
 
 class AuthService {
   async register({ name, email, password }) {
@@ -14,17 +13,33 @@ class AuthService {
     }
 
     const hashed = await hashPassword(password);
+
     const user = await prisma.user.create({
       data: { name, email, password: hashed },
     });
 
-    return { id: user.id, email: user.email };
+    // ✅ Auto-generate tokens immediately
+    const accessToken = generateAccessToken(user); // Stores real DB ID inside
+    const refreshToken = generateRefreshToken(user);
+
+    return {
+      id: encryptId(user.id),   // Hide real DB ID in response
+      email,
+      accessToken,
+      refreshToken
+    };
   }
 
   async login({ email, password }) {
-    const user = await prisma.user.findUnique({ where: { email } });
+    const user = await prisma.user.findUnique(
+      { 
+        where: { 
+        email ,
+        deletedAt: null,
+        }
+      });
     if (!user) {
-      const error = new Error('Invalid credentials');
+      const error = new Error('Invalid credentials or account is deleted');
       error.code = 400;
       throw error;
     }
@@ -50,8 +65,8 @@ class AuthService {
     }
 
     const payload = verifyToken(refreshToken, process.env.JWT_REFRESH_SECRET);
-    const user = await prisma.user.findUnique({ where: { id: payload.id } });
 
+    const user = await prisma.user.findUnique({ where: { id: payload.id } });
     if (!user) {
       const error = new Error('Invalid refresh token');
       error.code = 401;

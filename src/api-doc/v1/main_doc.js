@@ -23,33 +23,33 @@ export default {
       "User": {
         "type": "object",
         "properties": {
-          "id": { "type": "integer", "example": 1 },
+          "id": { "type": "integer", "example": 123 },
           "name": { "type": "string", "example": "Jane Doe" },
-          "email": { "type": "string", "example": "jane@example.com" }
+          "email": { "type": "string", "example": "jane.doe@example.com" }
         }
       },
       "Project": {
         "type": "object",
         "properties": {
-          "id": { "type": "integer", "example": 1 },
-          "name": { "type": "string", "example": "Project Alpha" },
-          "description": { "type": "string", "example": "Description of the project" }
+          "id": { "type": "integer", "example": 101 },
+          "name": { "type": "string", "example": "Marketing Website" },
+          "description": { "type": "string", "example": "Redesign of the corporate marketing website." }
         }
       },
       "Task": {
         "type": "object",
         "properties": {
-          "id": { "type": "integer", "example": 1 },
-          "title": { "type": "string", "example": "Implement endpoint" },
-          "description": { "type": "string", "example": "Implement the POST /tasks" },
+          "id": { "type": "integer", "example": 456 },
+          "title": { "type": "string", "example": "Write landing page copy" },
+          "description": { "type": "string", "example": "Draft the copy for the new landing page." },
           "status": { "type": "string", "example": "pending" },
-          "dueDate": { "type": "string", "format": "date-time" },
-          "projectId": { "type": "integer", "example": 1 }
+          "dueDate": { "type": "string", "format": "date-time", "example": "2025-07-15T09:00:00Z" },
+          "projectId": { "type": "integer", "example": 101 }
         }
       }
     }
   },
-  
+
   "paths": {
     "/auth/register": {
       "post": {
@@ -63,9 +63,9 @@ export default {
                 "type": "object",
                 "required": ["name", "email", "password"],
                 "properties": {
-                  "name": { "type": "string" },
-                  "email": { "type": "string" },
-                  "password": { "type": "string" }
+                  "name": { "type": "string", "example": "Jane Doe" },
+                  "email": { "type": "string", "example": "jane.doe@example.com" },
+                  "password": { "type": "string", "example": "SecurePass123!" }
                 }
               }
             }
@@ -89,8 +89,8 @@ export default {
                 "type": "object",
                 "required": ["email", "password"],
                 "properties": {
-                  "email": { "type": "string" },
-                  "password": { "type": "string" }
+                  "email": { "type": "string", "example": "jane.doe@example.com" },
+                  "password": { "type": "string", "example": "SecurePass123!" }
                 }
               }
             }
@@ -104,8 +104,8 @@ export default {
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "token": { "type": "string" },
-                    "refreshToken": { "type": "string" }
+                    "token": { "type": "string", "example": "eyJhbGciOiJIUzI1NiIsInR5..." },
+                    "refreshToken": { "type": "string", "example": "eyJhbGciOiJIUzI1NiIsInR5..." }
                   }
                 }
               }
@@ -117,64 +117,64 @@ export default {
     },
 
     "/auth/refresh": {
-  "post": {
-    "summary": "Refresh JWT tokens",
-    "tags": ["Auth"],
-    "requestBody": {
-      "required": true,
-      "content": {
-        "application/json": {
-          "schema": {
-            "type": "object",
-            "properties": {
-              "refreshToken": {
-                "type": "string",
-                "example": "eyJhbGciOiJIUzI1NiIsInR5..."
+      "post": {
+        "summary": "Refresh JWT tokens",
+        "tags": ["Auth"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "refreshToken": {
+                    "type": "string",
+                    "example": "eyJhbGciOiJIUzI1NiIsInR5..."
+                  }
+                },
+                "required": ["refreshToken"]
               }
-            },
-            "required": ["refreshToken"]
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "New access and refresh tokens generated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "accessToken": {
+                      "type": "string",
+                      "example": "eyJhbGciOiJIUzI1NiIsInR5..."
+                    },
+                    "refreshToken": {
+                      "type": "string",
+                      "example": "eyJhbGciOiJIUzI1NiIsInR5..."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No refresh token provided or invalid"
+          },
+          "403": {
+            "description": "Invalid or expired refresh token"
+          },
+          "500": {
+            "description": "Server error"
           }
         }
       }
     },
-    "responses": {
-      "200": {
-        "description": "New access and refresh tokens generated",
-        "content": {
-          "application/json": {
-            "schema": {
-              "type": "object",
-              "properties": {
-                "accessToken": {
-                  "type": "string",
-                  "example": "eyJhbGciOiJIUzI1NiIsInR5..."
-                },
-                "refreshToken": {
-                  "type": "string",
-                  "example": "eyJhbGciOiJIUzI1NiIsInR5..."
-                }
-              }
-            }
-          }
-        }
-      },
-      "401": {
-        "description": "No refresh token provided or invalid"
-      },
-      "403": {
-        "description": "Invalid or expired refresh token"
-      },
-      "500": {
-        "description": "Server error"
-      }
-    }
-  }
-},
     "/users": {
       "get": {
         "summary": "Get all users",
         "tags": ["Users"],
-         "security": [{ "bearerAuth": [] }],
+        "security": [{ "bearerAuth": [] }],
         "responses": {
           "200": {
             "description": "List of users",
@@ -188,18 +188,21 @@ export default {
             }
           }
         }
-      },
+      }
     },
     "/users/{id}": {
       "get": {
         "summary": "Get user by ID",
         "tags": ["Users"],
         "parameters": [
-          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+          { "name": "id", "in": "path", "required": true, "schema": { "example": "afdgg..." } }
         ],
-         "security": [{ "bearerAuth": [] }],
+        "security": [{ "bearerAuth": [] }],
         "responses": {
-          "200": { "description": "User found", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/User" } } } },
+          "200": {
+            "description": "User found",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/User" } } }
+          },
           "404": { "description": "User not found" }
         }
       },
@@ -208,7 +211,7 @@ export default {
         "tags": ["Users"],
         "security": [{ "bearerAuth": [] }],
         "parameters": [
-          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+          { "name": "id", "in": "path", "required": true, "schema": { "example": "afdgg..." } }
         ],
         "requestBody": {
           "required": true,
@@ -217,8 +220,8 @@ export default {
               "schema": {
                 "type": "object",
                 "properties": {
-                  "name": { "type": "string" },
-                  "email": { "type": "string" }
+                  "name": { "type": "string", "example": "Jane Doe" },
+                  "email": { "type": "string", "example": "jane.doe@example.com" }
                 }
               }
             }
@@ -230,17 +233,45 @@ export default {
         }
       },
       "delete": {
-        "summary": "Delete user by ID",
+        "summary": "Soft delete user by ID",
         "tags": ["Users"],
-         "security": [{ "bearerAuth": [] }],
+        "security": [{ "bearerAuth": [] }],
         "parameters": [
-          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "abcd1234encryptedid"
+            }
+          }
         ],
         "responses": {
-          "200": { "description": "User deleted" },
+          "200": {
+            "description": "User soft deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": { "type": "string", "example": "abcd1234encryptedid" },
+                    "name": { "type": "string", "example": "Jane Doe" },
+                    "email": { "type": "string", "example": "jane@example.com" },
+                    "deletedAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "example": "2024-07-12T15:34:00.000Z"
+                    }
+                  }
+                }
+              }
+            }
+          },
           "404": { "description": "User not found" }
         }
       }
+
     },
     "/projects": {
       "post": {
@@ -254,8 +285,8 @@ export default {
               "schema": {
                 "type": "object",
                 "properties": {
-                  "name": { "type": "string" },
-                  "description": { "type": "string" }
+                  "name": { "type": "string", "example": "Marketing Website" },
+                  "description": { "type": "string", "example": "Redesign of the corporate marketing website." }
                 }
               }
             }
@@ -290,7 +321,7 @@ export default {
         "tags": ["Tasks"],
         "security": [{ "bearerAuth": [] }],
         "parameters": [
-          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "example": "asdgrggd" } }
         ],
         "requestBody": {
           "required": true,
@@ -299,9 +330,9 @@ export default {
               "schema": {
                 "type": "object",
                 "properties": {
-                  "title": { "type": "string" },
-                  "description": { "type": "string" },
-                  "dueDate": { "type": "string", "format": "date-time" }
+                  "title": { "type": "string", "example": "Write landing page copy" },
+                  "description": { "type": "string", "example": "Draft the copy for the new landing page." },
+                  "dueDate": { "type": "string", "format": "date-time", "example": "2025-07-15T09:00:00Z" }
                 }
               }
             }
@@ -318,8 +349,8 @@ export default {
         "tags": ["Tasks"],
         "security": [{ "bearerAuth": [] }],
         "parameters": [
-          { "name": "status", "in": "query", "schema": { "type": "string" } },
-          { "name": "projectId", "in": "query", "schema": { "type": "integer" } }
+          { "name": "status", "in": "query", "schema": { "type": "string", "example": "pending" } },
+          { "name": "projectId", "in": "query", "schema": { "type": "", "example": "abcd..." } }
         ],
         "responses": {
           "200": {
@@ -342,7 +373,7 @@ export default {
         "tags": ["Tasks"],
         "security": [{ "bearerAuth": [] }],
         "parameters": [
-          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "", "example": "abcd..." } }
         ],
         "requestBody": {
           "required": true,
@@ -351,9 +382,14 @@ export default {
               "schema": {
                 "type": "object",
                 "properties": {
-                  "status": { "type": "string" }
+                  "status": {
+                    "type": "string",
+                    "enum": ["pending", "in_progress", "completed"],
+                    "example": "in_progress",
+                    "description": "Status must be one of: pending, in_progress, completed"
+                  }
                 }
-              }
+              } 
             }
           }
         },
@@ -375,9 +411,9 @@ export default {
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "total": { "type": "integer" },
-                    "completed": { "type": "integer" },
-                    "pending": { "type": "integer" }
+                    "total": { "type": "integer", "example": 50 },
+                    "completed": { "type": "integer", "example": 20 },
+                    "pending": { "type": "integer", "example": 30 }
                   }
                 }
               }
@@ -394,4 +430,3 @@ export default {
     { "name": "Tasks" }
   ]
 }
-

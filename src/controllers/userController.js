@@ -1,6 +1,7 @@
 import userService from '../services/userService.js';
 import redisClient from '../config/redis.js';
 import { successResponse } from '../utils/responseHandler.js';
+import { decryptId } from '../utils/idUtils.js';
 
 class UserController {
   async getAll(req, res, next) {
@@ -39,7 +40,15 @@ class UserController {
 
   async update(req, res, next) {
     try {
-      const user = await userService.update(req.params.id, req.body);
+        const currentUserId = req.user.id;
+        const encryptedId = req.params.id;
+        if(currentUserId!== decryptId(encryptedId)){
+          const error = new  Error("You cannot update other user");
+          error.status = 403;
+          throw error;
+        }
+        
+      const user = await userService.update(encryptedId, req.body);
 
       if (redisClient.isOpen) {
         await redisClient.del('users:all');
@@ -53,13 +62,13 @@ class UserController {
 
   async remove(req, res, next) {
     try {
-      await userService.remove(req.params.id);
+     const deleted= await userService.remove(req.params.id);
 
       if (redisClient.isOpen) {
         await redisClient.del('users:all');
       }
 
-      successResponse(res, 200, { message: 'User deleted' });
+      successResponse(res, 200, deleted);
     } catch (err) {
       next(err);
     }

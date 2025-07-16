@@ -2,126 +2,157 @@
 
 import prisma from '../config/prismaClient.js';
 import redisClient from '../config/redis.js';
+import { encryptId, decryptId } from '../utils/idUtils.js';
 
 class TaskService {
-    async createTask(userId, projectId, taskData) {
-        // Validate project
-        const project = await prisma.project.findUnique({
-            where: { id: projectId },
-        });
+  async createTask(userId, encryptedProjectId, taskData) {
+  const projectId = decryptId(encryptedProjectId);
+  //const decryptedUserId = decryptId(userId);
+  console.log("projectId", projectId);
+  const project = await prisma.project.findUnique({
+    where: { id: projectId },
+  });
 
-        if (!project || project.creatorId !== userId) {
-            const error = new Error('Project not found or access denied.');
-            error.code = 404;
-            throw error;
-        }
+  if (!project || project.creatorId !== userId) {
+    const error = new Error('Project not found or access denied.');
+    error.code = 404;
+    throw error;
+  }
 
-        const task = await prisma.task.create({
-            data: {
-                title: taskData.title,
-                description: taskData.description || null,
-                dueDate: taskData.dueDate ? new Date(taskData.dueDate) : null,
-                userId,
-                projectId,
-            },
-        });
+  const task = await prisma.task.create({
+    data: {
+      title: taskData.title,
+      description: taskData.description || null,
+      dueDate: taskData.dueDate ? new Date(taskData.dueDate) : null,
+      userId: userId,
+      projectId,
+    },
+  });
 
-        await redisClient.del(`tasks:project:${projectId}`);
+  await redisClient.del(`tasks:project:${projectId}`);
 
-        return task;
+  return {
+    id: encryptId(task.id),
+    title: task.title,
+    description: task.description,
+    dueDate: task.dueDate,
+    status: task.status
+  };
+}
+
+
+  async getAllTasks(userId, query) {
+    const { status, from, to, projectId: encryptedProjectId } = query;
+
+    const filters = { userId };
+
+    if (status) filters.status = status;
+
+    if (from || to) {
+      filters.dueDate = {};
+      if (from) filters.dueDate.gte = new Date(from);
+      if (to) filters.dueDate.lte = new Date(to);
     }
 
-    async getAllTasks(userId, query) {
-        const { status, from, to, projectId } = query;
-
-        const filters = { userId };
-
-        if (status) filters.status = status;
-
-        if (from || to) {
-            filters.dueDate = {};
-            if (from) filters.dueDate.gte = new Date(from);
-            if (to) filters.dueDate.lte = new Date(to);
-        }
-
-        if (projectId) filters.projectId = Number(projectId);
-
-        const cacheKey = `tasks:${userId}:${JSON.stringify(query)}`;
-        const cached = await redisClient.get(cacheKey);
-
-        if (cached) {
-            return JSON.parse(cached);
-        }
-
-        const tasks = await prisma.task.findMany({
-            where: filters,
-            include: { project: true },
-        });
-
-        await redisClient.set(cacheKey, JSON.stringify(tasks), { EX: 60 });
-
-        return tasks;
+    // 🔒 Decrypt projectId if provided
+    if (encryptedProjectId) {
+      filters.projectId = decryptId(encryptedProjectId);
     }
 
-    async updateStatus(userId, taskId, status) {
-        const ALLOWED_STATUSES = ['pending', 'in_progress', 'completed'];
-        if (!ALLOWED_STATUSES.includes(status)) {
-            const error = new Error(`Invalid status. Allowed: ${ALLOWED_STATUSES.join(', ')}`);
-            error.code = 400;
-            throw error;
-        }
+    const cacheKey = `tasks:${userId}:${JSON.stringify(filters)}`;
+    const cached = await redisClient.get(cacheKey);
 
-        const task = await prisma.task.findUnique({ where: { id: taskId } });
-
-        if (!task || task.userId !== userId) {
-            const error = new Error('Task not found');
-            error.code = 404;
-            throw error;
-        }
-
-        const updated = await prisma.task.update({
-            where: { id: taskId },
-            data: { status },
-        });
-
-        await redisClient.del(`tasks:${userId}:*`);
-
-        return updated;
+    if (cached) {
+      return JSON.parse(cached);
     }
 
-    async getAnalytics() {
-        const totalTasks = await prisma.task.count();
+    const tasks = await prisma.task.findMany({
+      where: filters,
+      include: { project: true },
+    });
 
-        const byStatus = await prisma.task.groupBy({
-            by: ['status'],
-            _count: { status: true },
-        });
+    // 🔒 Encrypt IDs before caching/returning
+    const encryptedTasks = tasks.map(task => ({
+      id: encryptId(task.id),
+      title: task.title,
+      description: task.description,
+      dueDate: task.dueDate,
+      status: task.status,
+      projectId: encryptId(task.projectId),
+    }));
 
-        const overdueTasks = await prisma.task.count({
-            where: {
-                dueDate: { lt: new Date() },
-                status: { not: 'completed' },
-            },
-        });
+    await redisClient.set(cacheKey, JSON.stringify(encryptedTasks), { EX: 60 });
 
-        const tasksPerProject = await prisma.task.groupBy({
-            by: ['projectId'],
-            _count: { projectId: true },
-        });
+    return encryptedTasks;
+  }
 
-        return {
-            totalTasks,
-            byStatus: byStatus.reduce((acc, curr) => {
-                acc[curr.status] = curr._count.status;
-                return acc;
-            }, {}),
-            overdueTasks,
-            tasksPerProject: tasksPerProject.map(p => ({
-                projectId: p.projectId,
-                count: p._count.projectId,
-            })),
-        };
+  async updateStatus(userId, encryptedTaskId, status) {
+    const ALLOWED_STATUSES = ['pending', 'in_progress', 'completed'];
+    if (!ALLOWED_STATUSES.includes(status)) {
+      const error = new Error(`Invalid status. Allowed: ${ALLOWED_STATUSES.join(', ')}`);
+      error.code = 400;
+      throw error;
     }
+
+    // 🔒 Decrypt task ID
+    const taskId = decryptId(encryptedTaskId);
+
+    const task = await prisma.task.findUnique({ where: { id: taskId } });
+
+    if (!task || task.userId !== userId) {
+      const error = new Error('Task not found');
+      error.code = 404;
+      throw error;
+    }
+
+    const updated = await prisma.task.update({
+      where: { id: taskId },
+      data: { status },
+    });
+
+    await redisClient.del(`tasks:${userId}:*`);
+
+    // 🔒 Encrypt ID in response too
+    return {
+      id: encryptId(updated.id),
+      title: updated.title,
+      status: updated.status,
+    };
+  }
+
+  async getAnalytics() {
+    const totalTasks = await prisma.task.count();
+
+    const byStatus = await prisma.task.groupBy({
+      by: ['status'],
+      _count: { status: true },
+    });
+
+    const overdueTasks = await prisma.task.count({
+      where: {
+        dueDate: { lt: new Date() },
+        status: { not: 'completed' },
+      },
+    });
+
+    const tasksPerProject = await prisma.task.groupBy({
+      by: ['projectId'],
+      _count: { projectId: true },
+    });
+
+    return {
+      totalTasks,
+      byStatus: byStatus.reduce((acc, curr) => {
+        acc[curr.status] = curr._count.status;
+        return acc;
+      }, {}),
+      overdueTasks,
+      tasksPerProject: tasksPerProject.map(p => ({
+        projectId: encryptId(p.projectId), // 🔒 Encrypt project IDs in analytics too!
+        count: p._count.projectId,
+      })),
+    };
+  }
 }
 
 export default new TaskService();
