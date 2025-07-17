@@ -14,6 +14,9 @@ class ProjectService {
       },
     });
 
+    const cacheKey = `projects:user:${userId}`;
+    await redisClient.del(cacheKey);
+
     //  Encrypt ID before returning
     return {
       id: encryptId(project.id),

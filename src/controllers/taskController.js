@@ -3,21 +3,15 @@
 import TaskService from '../services/taskService.js';
 import { successResponse } from '../utils/responseHandler.js';
 import prisma from '../config/prismaClient.js';
+import { checkUserActive } from '../utils/checkUserActive.js';
+
 class TaskController {
   async createTask(req, res, next) {
     try {
       const userId = req.user.id;
       const encryptedProjectId = req.params.id;
-      const user = await prisma.user.findUnique({
-        where: { id: userId },
-        select: { id: true, deletedAt: true },
-      });
 
-      if (!user || user.deletedAt) {
-        const error = new Error('User is deleted or not found.');
-        error.code = 403; // Forbidden
-        throw error;
-      }
+      await checkUserActive(userId);
 
       const task = await TaskService.createTask(userId, encryptedProjectId, req.body);
 
@@ -38,15 +32,7 @@ class TaskController {
     try {
       const userId = req.user.id;
 
-      const user = await prisma.user.findUnique({
-        where: { id: userId },
-        select: { id: true, deletedAt: true },
-      });
-      if (!user || user.deletedAt) {
-        const error = new Error('User is deleted or not found.');
-        error.code = 403; // Forbidden
-        throw error;
-      }
+      await checkUserActive(userId);
 
       const tasks = await TaskService.getAllTasks(userId, req.query);
 
@@ -62,15 +48,7 @@ class TaskController {
       const taskId = req.params.id;
       const { status } = req.body;
 
-      const user = await prisma.user.findUnique({
-        where: { id: userId },
-        select: { id: true, deletedAt: true },
-      });
-      if (!user || user.deletedAt) {
-        const error = new Error('User is deleted or not found.');
-        error.code = 403; // Forbidden
-        throw error;
-      }
+      await checkUserActive(userId); 
 
       const updatedTask = await TaskService.updateStatus(userId, taskId, status);
 

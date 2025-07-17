@@ -32,10 +32,10 @@ class AuthService {
 
   async login({ email, password }) {
     const user = await prisma.user.findUnique(
-      { 
-        where: { 
-        email ,
-        deletedAt: null,
+      {
+        where: {
+          email,
+          deletedAt: null,
         }
       });
     if (!user) {
@@ -58,6 +58,7 @@ class AuthService {
   }
 
   async refresh(refreshToken) {
+
     if (!refreshToken) {
       const error = new Error('No refresh token provided');
       error.code = 401;
@@ -66,9 +67,12 @@ class AuthService {
 
     const payload = verifyToken(refreshToken, process.env.JWT_REFRESH_SECRET);
 
-    const user = await prisma.user.findUnique({ where: { id: payload.id } });
+    const user = await prisma.user.findUnique({ where: { 
+      id: payload.id,
+     deletedAt: null,
+     } });
     if (!user) {
-      const error = new Error('Invalid refresh token');
+      const error = new Error('Invalid refresh token or account is deleted');
       error.code = 401;
       throw error;
     }

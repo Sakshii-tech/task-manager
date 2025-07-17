@@ -16,10 +16,16 @@ export const encryptId = (id) => {
 };
 
 export const decryptId = (encrypted) => {
+  try{
   const [ivHex, encryptedData] = encrypted.split(':');
   const iv = Buffer.from(ivHex, 'hex');
   const decipher = crypto.createDecipheriv(algorithm, key, iv);
   let decrypted = decipher.update(encryptedData, 'hex', 'utf8');
   decrypted += decipher.final('utf8');
   return parseInt(decrypted, 10);
+  } catch(err){
+    const error = new Error("Invalid or corrupted id");
+    error.code= 400;
+    throw error;
+  }
 };

@@ -1,33 +1,37 @@
 // src/services/taskService.js
 
+import { TaskStatus } from '@prisma/client';
 import prisma from '../config/prismaClient.js';
 import redisClient from '../config/redis.js';
 import { encryptId, decryptId } from '../utils/idUtils.js';
 
 class TaskService {
   async createTask(userId, encryptedProjectId, taskData) {
-  const projectId = decryptId(encryptedProjectId);
-  //const decryptedUserId = decryptId(userId);
-  console.log("projectId", projectId);
-  const project = await prisma.project.findUnique({
-    where: { id: projectId },
-  });
+    const projectId = decryptId(encryptedProjectId);
+    const project = await prisma.project.findUnique({
+      where: { id: projectId },
+    });
 
-  if (!project || project.creatorId !== userId) {
-    const error = new Error('Project not found or access denied.');
-    error.code = 404;
-    throw error;
-  }
+    if (!project || project.creatorId !== userId) {
+      const error = new Error('Project not found or access denied.');
+      error.code = 404;
+      throw error;
+    }
+    if (taskData.dueDate && isNaN(Date.parse(taskData.dueDate))) {
+      const error = new Error('Invalid dueDate format. Expected ISO 8601 date string.');
+      error.code = 400;
+      throw error;
+    }
 
-  const task = await prisma.task.create({
-    data: {
-      title: taskData.title,
-      description: taskData.description || null,
-      dueDate: taskData.dueDate ? new Date(taskData.dueDate) : null,
-      userId: userId,
-      projectId,
-    },
-  });
+    const task = await prisma.task.create({
+      data: {
+        title: taskData.title,
+        description: taskData.description || null,
+        dueDate: taskData.dueDate ? new Date(taskData.dueDate) : null,
+        userId: userId,
+        projectId,
+      },
+    });
 
   await redisClient.del(`tasks:project:${projectId}`);
 
@@ -46,7 +50,14 @@ class TaskService {
 
     const filters = { userId };
 
-    if (status) filters.status = status;
+    if (status){
+      if (!Object.values(TaskStatus).includes(status)) {
+      const error = new Error(`Invalid status. Allowed: ${Object.values(TaskStatus).join(', ')}`);
+      error.code = 400;
+      throw error;
+    }
+    filters.status = status;
+   }
 
     if (from || to) {
       filters.dueDate = {};
@@ -79,6 +90,7 @@ class TaskService {
       dueDate: task.dueDate,
       status: task.status,
       projectId: encryptId(task.projectId),
+      updatedAt: task.updatedAt,
     }));
 
     await redisClient.set(cacheKey, JSON.stringify(encryptedTasks), { EX: 60 });
@@ -87,9 +99,8 @@ class TaskService {
   }
 
   async updateStatus(userId, encryptedTaskId, status) {
-    const ALLOWED_STATUSES = ['pending', 'in_progress', 'completed'];
-    if (!ALLOWED_STATUSES.includes(status)) {
-      const error = new Error(`Invalid status. Allowed: ${ALLOWED_STATUSES.join(', ')}`);
+    if (!Object.values(TaskStatus).includes(status)) {
+      const error = new Error(`Invalid status. Allowed: ${Object.values(TaskStatus).join(', ')}`);
       error.code = 400;
       throw error;
     }
@@ -107,7 +118,10 @@ class TaskService {
 
     const updated = await prisma.task.update({
       where: { id: taskId },
-      data: { status },
+      data: {
+        status: status,
+        updatedAt: new Date(),
+      },
     });
 
     await redisClient.del(`tasks:${userId}:*`);
@@ -117,6 +131,7 @@ class TaskService {
       id: encryptId(updated.id),
       title: updated.title,
       status: updated.status,
+      updatedAt: updated.updatedAt,
     };
   }
 

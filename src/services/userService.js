@@ -15,6 +15,7 @@ class UserService {
         name: true,
         email: true,
         createdAt: true,
+        updatedAt: true,
       },
     });
 
@@ -34,6 +35,7 @@ class UserService {
         name: true,
         email: true,
         createdAt: true,
+        updatedAt: true,
       },
     });
 
@@ -79,6 +81,7 @@ class UserService {
       data: {
         name: data.name,
         email: data.email,
+        updatedAt: new Date(),
       },
     })
     if (user.count === 0) {
@@ -106,6 +109,7 @@ class UserService {
         name: true,
         email: true,
         createdAt: true,
+        updatedAt: true,
       }
     });
 

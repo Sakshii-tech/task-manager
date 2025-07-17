@@ -1,6 +1,6 @@
 import ProjectService from '../services/projectService.js';
 import { successResponse } from '../utils/responseHandler.js';
-import prisma from '../config/prismaClient.js';
+import { checkUserActive } from '../utils/checkUserActive.js';
 
 class ProjectController {
   async create(req, res, next) {
@@ -12,15 +12,7 @@ class ProjectController {
         throw error;
       }
 
-      const user = await prisma.user.findUnique({
-        where: { id: userId },
-        select: { id: true, deletedAt: true },
-      });
-      if (!user || user.deletedAt) {
-        const error = new Error('User is deleted or not found.');
-        error.code = 403; // Forbidden
-        throw error;
-      }
+      await checkUserActive(userId); 
 
       const project = await ProjectService.createProject(userId, req.body);
       successResponse(res, 201, { message: 'Project created', project });
@@ -36,15 +28,7 @@ class ProjectController {
     try {
       const userId = req.user.id;
 
-      const user = await prisma.user.findUnique({
-        where: { id: userId },
-        select: { id: true, deletedAt: true },
-      });
-      if (!user || user.deletedAt) {
-        const error = new Error('User is deleted or not found.');
-        error.code = 403; // Forbidden
-        throw error;
-      }
+      await checkUserActive(userId); 
 
       const projects = await ProjectService.getAllProjects(userId);
       successResponse(res, 200, { projects });
