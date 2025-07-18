@@ -1,58 +1,41 @@
-import prisma from "../config/prismaClient.js"; // adjust path if needed
-import redisClient from "../config/redis.js";
+import ProjectService from '../services/projectService.js';
+import { successResponse } from '../utils/responseHandler.js';
+import { checkUserActive } from '../utils/checkUserActive.js';
 
 class ProjectController {
-  async create(req, res) {
+  async create(req, res, next) {
     try {
-      const { name, description } = req.body;
-
-      // Use userId from JWT payload
       const userId = req.user?.id;
       if (!userId) {
-        return res.status(401).json({ error: "Unauthorized" });
+        const error = new Error('Unauthorized');
+        error.code = 401;
+        throw error;
       }
 
-      const project = await prisma.project.create({
-        data: {
-          name,
-          description,
-          creatorId: userId 
-        },
-      });
+      await checkUserActive(userId); 
 
-      res.status(201).json(project);
+      const project = await ProjectService.createProject(userId, req.body);
+      successResponse(res, 201, { message: 'Project created', project });
     } catch (err) {
-      console.error(" Error creating project:", err);
-      res.status(500).json({ error: "Internal server error" });
+      if (err.code === 'P2002') {
+        return res.status(409).json({ error: 'A project with this name already exists.' });
+      }
+      next(err);
     }
   }
-   async getAll(req, res) {
-  const userId = req.user.id;
 
-  const cacheKey = `projects:user:${userId}`;
+  async getAll(req, res, next) {
+    try {
+      const userId = req.user.id;
 
-  try {
-    // Check Redis
-    const cached = await redisClient.get(cacheKey);
-    if (cached) {
-      console.log('Projects from cache');
-      return res.json(JSON.parse(cached));
+      await checkUserActive(userId); 
+
+      const projects = await ProjectService.getAllProjects(userId);
+      successResponse(res, 200, { projects });
+    } catch (err) {
+      next(err);
     }
-
-    // Fetch from DB
-    const projects = await prisma.project.findMany({
-      where: { creatorId: userId },
-    });
-
-    // Cache them
-    await redisClient.set(cacheKey, JSON.stringify(projects), { EX: 60 });
-
-    res.json(projects);
-  } catch (err) {
-    console.error(' Error getting projects:', err);
-    res.status(500).json({ error: 'Internal Server Error' });
   }
-}
 }
 
 export default new ProjectController();
