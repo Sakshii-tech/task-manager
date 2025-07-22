@@ -4,6 +4,7 @@ import TaskService from '../services/taskService.js';
 import { successResponse } from '../utils/responseHandler.js';
 import prisma from '../config/prismaClient.js';
 import { checkUserActive } from '../utils/checkUserActive.js';
+import UploadService from '../services/uploadService.js';
 
 class TaskController {
   async createTask(req, res, next) {
@@ -13,9 +14,16 @@ class TaskController {
 
       await checkUserActive(userId);
 
+      // Create the task first
       const task = await TaskService.createTask(userId, encryptedProjectId, req.body);
 
-      successResponse(res, 201, { message: 'Task created', task });
+      let attachment = null;
+      if (req.file) {
+        // Upload the attachment if file is present
+        attachment = await UploadService.uploadAttachment(userId, task.id, req.file);
+      }
+
+      successResponse(res, 201, { message: 'Task created', task, attachment });
     } catch (err) {
       if (err.code === 'P2002') {
         const error = new Error('Task with this title already exists in this project.');

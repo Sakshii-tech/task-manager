@@ -326,20 +326,48 @@ export default {
         "requestBody": {
           "required": true,
           "content": {
-            "application/json": {
+            "multipart/form-data": {
               "schema": {
                 "type": "object",
                 "properties": {
                   "title": { "type": "string", "example": "Write landing page copy" },
                   "description": { "type": "string", "example": "Draft the copy for the new landing page." },
-                  "dueDate": { "type": "string", "format": "date-time", "example": "2025-07-15T09:00:00Z" }
-                }
+                  "dueDate": { "type": "string", "format": "date-time", "example": "2025-07-15T09:00:00Z" },
+                  "attachment": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "Attachment file (image or PDF)"
+                  }
+                },
+                "required": ["title"]
               }
             }
           }
         },
         "responses": {
-          "201": { "description": "Task created" }
+          "201": {
+            "description": "Task created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string", "example": "Task created" },
+                    "task": { "$ref": "#/components/schemas/Task" },
+                    "attachment": {
+                      "type": "object",
+                      "nullable": true,
+                      "properties": {
+                        "id": { "type": "string", "example": "encryptedId" },
+                        "fileUrl": { "type": "string", "example": "uploads/file-123.png" },
+                        "uploadedAt": { "type": "string", "format": "date-time" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
         }
       }
     },
