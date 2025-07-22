@@ -10,6 +10,13 @@ import authRoutes from './routes/v1/authRoutes.js';
 import projectRoutes from './routes/v1/projectRoutes.js';
 import taskRoutes from './routes/v1/taskRoutes.js';
 import errorHandler from './middleware/errorHandler.js';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import uploadRoutes from './routes/v1/uploadRoutes.js';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+
 dotenv.config();
 
 const app = express();
@@ -25,11 +32,12 @@ app.use('/api/v1/users', userRoutes);
 app.use('/api/v1/auth', authRoutes);
 app.use("/api/v1/projects", projectRoutes);
 app.use('/api/v1/tasks', taskRoutes);
+app.use('/api/v1/uploads', uploadRoutes);
 
 app.get('/', (req, res) => {
   res.send({ message: 'Task Management System API is running' });
 });
-
+app.use('api/v1/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 app.use('/v1/api-doc', swaggerUI.serve, swaggerUI.setup(swaggerDefinition));
 
 app.use(errorHandler);

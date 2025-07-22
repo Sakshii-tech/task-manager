@@ -326,20 +326,48 @@ export default {
         "requestBody": {
           "required": true,
           "content": {
-            "application/json": {
+            "multipart/form-data": {
               "schema": {
                 "type": "object",
                 "properties": {
                   "title": { "type": "string", "example": "Write landing page copy" },
                   "description": { "type": "string", "example": "Draft the copy for the new landing page." },
-                  "dueDate": { "type": "string", "format": "date-time", "example": "2025-07-15T09:00:00Z" }
-                }
+                  "dueDate": { "type": "string", "format": "date-time", "example": "2025-07-15T09:00:00Z" },
+                  "attachment": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "Attachment file (image or PDF)"
+                  }
+                },
+                "required": ["title"]
               }
             }
           }
         },
         "responses": {
-          "201": { "description": "Task created" }
+          "201": {
+            "description": "Task created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string", "example": "Task created" },
+                    "task": { "$ref": "#/components/schemas/Task" },
+                    "attachment": {
+                      "type": "object",
+                      "nullable": true,
+                      "properties": {
+                        "id": { "type": "string", "example": "encryptedId" },
+                        "fileUrl": { "type": "string", "example": "uploads/file-123.png" },
+                        "uploadedAt": { "type": "string", "format": "date-time" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
         }
       }
     },
@@ -395,6 +423,73 @@ export default {
         },
         "responses": {
           "200": { "description": "Task status updated" }
+        }
+      }
+    },
+    "/uploads/tasks/{id}/attachments": {
+      "post": {
+        "summary": "Upload attachment to a task",
+        "tags": ["Tasks"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Encrypted Task ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Attachment uploaded successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "attachment": {
+                      "$ref": "#/components/schemas/TaskAttachment"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "No file uploaded or invalid input"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "409": {
+            "description": "Task with duplicate title"
+          }
         }
       }
     },
